@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -9,6 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
+
+var MongoClient *mongo.Client
+var DB = "blendz"
 
 func Init()  {
 	error := godotenv.Load()
@@ -28,4 +32,12 @@ func Init()  {
 			panic(err)
 		}
 	}()
+
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to MongoDB")
+
+	MongoClient = client
 }
