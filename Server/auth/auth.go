@@ -10,6 +10,7 @@ import (
 	"github.com/Zheng5005/Blendz_v0/models"
 	"github.com/Zheng5005/Blendz_v0/utils"
 	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Signup(w http.ResponseWriter, r *http.Request)  {
@@ -66,7 +67,61 @@ func Signup(w http.ResponseWriter, r *http.Request)  {
 }
 
 func Login(w http.ResponseWriter, r *http.Request)  {
-	w.Write([]byte("Login"))
+	error := godotenv.Load()
+	if error != nil {
+		log.Println("No .env file founded")
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid method", http.StatusMethodNotAllowed)
+		return
+	} 
+
+	var input struct {
+		Email           string             `json:"email"`
+		Password        string             `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if input.Email == "" || input.Password == "" {
+		http.Error(w, "All fields are required", http.StatusBadRequest)
+		return
+	}
+
+	user, err := models.FindUser(input.Email)
+	if err != nil {
+		log.Printf("FindUser error: %v", err)
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(input.Password)); err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		http.Error(w, "Server Config error", http.StatusInternalServerError)
+		return
+	}
+
+  log.Println(user.ID.Hex())
+
+	token, err := utils.GenerateJWT(user.ID.Hex(), secret)
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+	cookie := utils.SetCookie(token)
+
+	http.SetCookie(w, cookie)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Success"))
 }
 
 func Logout(w http.ResponseWriter, r *http.Request)  {

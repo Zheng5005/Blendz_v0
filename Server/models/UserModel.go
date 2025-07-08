@@ -8,27 +8,38 @@ import (
 
 	"github.com/Zheng5005/Blendz_v0/db"
 	"github.com/Zheng5005/Blendz_v0/utils"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type User struct {
-	ID              primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Fullname        string             `json:"fullName"`
-	Email           string             `json:"email"`
-	Password        string             `json:"password"`
-	BIO             string             `json:"bio"`
-	ProfilePic      string             `json:"profilePic"`
-	NativeLanguage  string             `json:"nativeLanguage"`
-	LearningLanguage string            `json:"learningLanguage"`
-	Location        string             `json:"location"`
-	IsOnboarded     bool               `json:"isOnboarded"`
-	Friends         []int              `json:"friends"`
+	ID              bson.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Fullname        string             `json:"fullName" bson:"fullname"`
+	Email           string             `json:"email" bson:"email"`
+	Password        string             `json:"password" bson:"password"`
+	BIO             string             `json:"bio" bson:"bio"`
+	ProfilePic      string             `json:"profilePic" bson:"profilepic"`
+	NativeLanguage  string             `json:"nativeLanguage" bson:"nativelanguage"`
+	LearningLanguage string            `json:"learningLanguage" bson:"learninglanguage"`
+	Location        string             `json:"location" bson:"location"`
+	IsOnboarded     bool               `json:"isOnboarded" bson:"isonboarded"`
+	Friends         []bson.ObjectID `json:"friends,omitempty" bson:"friends,omitempty"`
+}
+
+type UserCredentials struct {
+	ID              bson.ObjectID `bson:"_id,omitempty"`
+	Email           string             `bson:"email"`
+	Password        string             `bson:"password"`
 }
 
 func NewUser(fullName string, email string, password string) *User {
-	user := User{Fullname: fullName, Email: email, Password: password}
+	user := User{
+		Fullname: fullName, 
+		Email: email, 
+		Password: password,
+		Friends: []bson.ObjectID{},
+	}
 
 	return &user
 }
@@ -82,6 +93,7 @@ func InsertUser(user User) (*mongo.InsertOneResult, error) {
 	if user.ProfilePic == "" {
 		user.ProfilePic = "https://avatar.iran.liara.run/public/12.png"
 	}
+	user.ID = bson.NewObjectID()
 
 	var collection = db.MongoClient.Database(db.DB).Collection("users")
 
@@ -91,4 +103,27 @@ func InsertUser(user User) (*mongo.InsertOneResult, error) {
 	}
 
 	return newUser, nil
+}
+
+func FindUser(email string) (UserCredentials, error) {
+	collection := db.MongoClient.Database(db.DB).Collection("users")
+	filter := bson.M{"email": email}
+
+	opts := options.FindOne().SetProjection(bson.D{
+		{Key: "_id", Value: 1}, 
+		{Key: "email", Value: 1}, 
+		{Key: "password", Value: 1},
+	})
+
+	var result UserCredentials
+
+	err := collection.FindOne(context.TODO(), filter, opts).Decode(&result)
+	if err != nil {
+    if err == mongo.ErrNoDocuments {
+			return UserCredentials{}, fmt.Errorf("No user was found: %w", err)
+		}
+		return UserCredentials{}, fmt.Errorf("Error: %w", err)
+	}
+
+	return result, nil
 }
