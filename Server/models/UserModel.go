@@ -3,10 +3,14 @@ package models
 import (
 	"context"
 	"fmt"
+	"log"
+	"regexp"
 
 	"github.com/Zheng5005/Blendz_v0/db"
+	"github.com/Zheng5005/Blendz_v0/utils"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"golang.org/x/crypto/bcrypt"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type User struct {
@@ -23,6 +27,12 @@ type User struct {
 	Friends         []int              `json:"friends"`
 }
 
+func NewUser(fullName string, email string, password string) *User {
+	user := User{Fullname: fullName, Email: email, Password: password}
+
+	return &user
+}
+
 func ValidateUser(user User) error  {
 	if user.Fullname == "" || user.Email == "" || user.Password == "" {
 		return fmt.Errorf("Must have all required fields")
@@ -32,38 +42,53 @@ func ValidateUser(user User) error  {
 		return fmt.Errorf("Password has to be at least 6 characters")
 	}
 
+	emailRegex := `^[a-zA-Z0-9.!#$%&'*+/=?^_` + "`" + `{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$`
+
+	// Compile the regex
+	re := regexp.MustCompile(emailRegex)
+
+	if !re.MatchString(user.Email) {
+		return fmt.Errorf("Invalid email")
+	}
+
+	var collection = db.MongoClient.Database(db.DB).Collection("users")
+
+	count, err := collection.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: user.Email}})
+
+	if err != nil {
+		return fmt.Errorf("Database error: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("Email already registered")
+	}
+
 	return nil
 }
 
-func GenerateHashedPassword(pass string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-	if err != nil {
-		return "", fmt.Errorf("Error hashing password: %w", err)
-	}
-
-	return string(bytes), nil
-}
-
-func InsertUser(user User) error {
+func InsertUser(user User) (*mongo.InsertOneResult, error) {
 	if err := ValidateUser(user); err != nil {
-		return err
+		log.Print(err)
+		return nil, err
 	}
-
-	collection := db.MongoClient.Database(db.DB).Collection("users")
 
 	// Before saving the user, it needs to hashed the password
-	hashedPassword, err := GenerateHashedPassword(user.Password)
+	hashedPassword, err := utils.GenerateHashedPassword(user.Password)
 	if err != nil {
-		return fmt.Errorf("Failed to hash password: %w", err)
+		log.Print(err)
+		return nil, fmt.Errorf("Failed to hash password: %w", err)
 	}
 
 	user.Password = hashedPassword
-	user.ID = primitive.NewObjectID()
-
-	_, err = collection.InsertOne(context.TODO(), user)
-	if err != nil {
-		return fmt.Errorf("Failed to hash password: %w", err)
+	if user.ProfilePic == "" {
+		user.ProfilePic = "https://avatar.iran.liara.run/public/12.png"
 	}
 
-	return nil
+	var collection = db.MongoClient.Database(db.DB).Collection("users")
+
+	newUser, err := collection.InsertOne(context.TODO(), user)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to insert user: %w", err)
+	}
+
+	return newUser, nil
 }

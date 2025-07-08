@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,13 @@ import (
 func main()  {
 	// MongoDB connection
 	db.Init()
+
+	//Disconnect MongoDB when main() exits
+	defer func ()  {
+		if err := db.MongoClient.Disconnect(context.TODO()); err != nil {
+			log.Fatal("Failed to Disconnect MongoDB: ", err)
+		}
+	}()
 
 	mux := http.NewServeMux()
 
