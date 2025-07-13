@@ -41,6 +41,20 @@ func SetCookie(token string) *http.Cookie {
 	return cookie
 }
 
+func ClearCookie() *http.Cookie {
+	cookie := &http.Cookie{
+		Name:    "Blendz_Session",
+		Value:   "",
+		MaxAge: -1,
+		Path:    "/",                            // Valid for all paths
+		HttpOnly: true,                           // Not accessible via client-side scripts
+		Secure:  true,                           // Only sent over HTTPS
+		SameSite: http.SameSiteLaxMode,               // Controls cross-site requests
+	}
+
+	return cookie
+}
+
 func GetCokkie(r *http.Request) (*http.Cookie, error) {
 	cookie, err := r.Cookie("Blendz_Session")
 	if err != nil {

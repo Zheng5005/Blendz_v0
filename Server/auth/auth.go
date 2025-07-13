@@ -2,12 +2,12 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/Zheng5005/Blendz_v0/models"
+	"github.com/Zheng5005/Blendz_v0/stream"
 	"github.com/Zheng5005/Blendz_v0/utils"
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
@@ -44,21 +44,24 @@ func Signup(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	str := fmt.Sprintf("%v", newID)
+	// TODO: CREATE USER IN STREAM 
+	err = stream.CreateStreamUser(newID.Hex(), user.Fullname, user.ProfilePic)
+	if err != nil {
+		log.Panicf("Stream user creation failed: %v", err)
+	}
+
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		http.Error(w, "Server Config error", http.StatusInternalServerError)
 		return
 	}
 
-	token, err := utils.GenerateJWT(str, secret)
+	token, err := utils.GenerateJWT(newID.Hex(), secret)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
 	cookie := utils.SetCookie(token)
-
-	// TODO: CREATE USER IN STREAM 
 
 	http.SetCookie(w, cookie)
 
@@ -109,8 +112,6 @@ func Login(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-  log.Println(user.ID.Hex())
-
 	token, err := utils.GenerateJWT(user.ID.Hex(), secret)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
@@ -125,5 +126,8 @@ func Login(w http.ResponseWriter, r *http.Request)  {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request)  {
+	cookie := utils.ClearCookie()
+
+	http.SetCookie(w, cookie)
 	w.Write([]byte("Logout"))
 }

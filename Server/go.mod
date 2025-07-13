@@ -11,6 +11,8 @@ require (
 )
 
 require (
+	github.com/GetStream/stream-chat-go/v7 v7.13.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

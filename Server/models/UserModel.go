@@ -38,6 +38,7 @@ func NewUser(fullName string, email string, password string) *User {
 		Fullname: fullName, 
 		Email: email, 
 		Password: password,
+		ProfilePic: "https://avatar.iran.liara.run/public/12.png",
 		Friends: []bson.ObjectID{},
 	}
 
@@ -76,17 +77,17 @@ func ValidateUser(user User) error  {
 	return nil
 }
 
-func InsertUser(user User) (*mongo.InsertOneResult, error) {
+func InsertUser(user User) (bson.ObjectID, error) {
 	if err := ValidateUser(user); err != nil {
 		log.Print(err)
-		return nil, err
+		return bson.NilObjectID, err
 	}
 
 	// Before saving the user, it needs to hashed the password
 	hashedPassword, err := utils.GenerateHashedPassword(user.Password)
 	if err != nil {
 		log.Print(err)
-		return nil, fmt.Errorf("Failed to hash password: %w", err)
+		return bson.NilObjectID, fmt.Errorf("Failed to hash password: %w", err)
 	}
 
 	user.Password = hashedPassword
@@ -99,10 +100,10 @@ func InsertUser(user User) (*mongo.InsertOneResult, error) {
 
 	newUser, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to insert user: %w", err)
+		return bson.NilObjectID, fmt.Errorf("Failed to insert user: %w", err)
 	}
 
-	return newUser, nil
+	return newUser.InsertedID.(bson.ObjectID), nil
 }
 
 func FindUser(email string) (UserCredentials, error) {

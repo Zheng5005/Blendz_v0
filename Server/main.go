@@ -8,12 +8,21 @@ import (
 
 	"github.com/Zheng5005/Blendz_v0/auth"
 	"github.com/Zheng5005/Blendz_v0/db"
+	"github.com/Zheng5005/Blendz_v0/stream"
 	"github.com/joho/godotenv"
 )
 
 func main()  {
+	error := godotenv.Load()
+	if error != nil {
+		log.Println("No .env file founded")
+	}
+
 	// MongoDB connection
 	db.Init()
+
+	// getStream connection
+	stream.Init()
 
 	//Disconnect MongoDB when main() exits
 	defer func ()  {
