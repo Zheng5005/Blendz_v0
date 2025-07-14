@@ -44,7 +44,6 @@ func Signup(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	// TODO: CREATE USER IN STREAM 
 	err = stream.CreateStreamUser(newID.Hex(), user.Fullname, user.ProfilePic)
 	if err != nil {
 		log.Panicf("Stream user creation failed: %v", err)
@@ -163,7 +162,16 @@ func OnBoard(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 
-	//TODO: Update the user in getStream
+	user, err2 := models.FindUserByID(userId)
+	if err2 != nil {
+		http.Error(w, "No user founded", http.StatusInternalServerError)
+		return
+	}
+
+	err = stream.CreateStreamUser(user.ID.Hex(), user.Fullname, user.ProfilePic)
+	if err != nil {
+		log.Panicf("Stream user creation failed: %v", err)
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Success OnBoard"))

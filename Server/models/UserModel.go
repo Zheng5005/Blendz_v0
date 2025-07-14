@@ -43,6 +43,7 @@ type OnBoardingUser struct {
 }
 
 func NewUser(fullName string, email string, password string) *User {
+	//TODO: Making a random number for the photo
 	user := User{
 		Fullname: fullName, 
 		Email: email, 
@@ -101,6 +102,7 @@ func InsertUser(user User) (bson.ObjectID, error) {
 
 	user.Password = hashedPassword
 	if user.ProfilePic == "" {
+		//TODO: Making a random number for the photo
 		user.ProfilePic = "https://avatar.iran.liara.run/public/12.png"
 	}
 	user.ID = bson.NewObjectID()
