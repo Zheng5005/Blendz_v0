@@ -10,6 +10,7 @@ import (
 	"github.com/Zheng5005/Blendz_v0/db"
 	"github.com/Zheng5005/Blendz_v0/middleware"
 	"github.com/Zheng5005/Blendz_v0/stream"
+	"github.com/Zheng5005/Blendz_v0/user"
 	"github.com/joho/godotenv"
 )
 
@@ -40,6 +41,10 @@ func main()  {
 	mux.HandleFunc("POST /api/auth/logout", auth.Logout)
 	mux.HandleFunc("POST /api/auth/onboarding", middleware.ProtectRoute(auth.OnBoard))
 	// http.HandleFunc("GET /posts/{id}", handlePost2)
+
+	// Users routes
+	mux.HandleFunc("GET /api/users", middleware.ProtectRoute(user.GetRecommendedUsers))
+	mux.HandleFunc("GET /api/users/friends", middleware.ProtectRoute(user.GetMyFriends))
 
 	s, err := makeServer(mux)
 	if err != nil {

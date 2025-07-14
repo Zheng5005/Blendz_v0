@@ -13,35 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-type User struct {
-	ID              bson.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
-	Fullname        string             `json:"fullName" bson:"fullname"`
-	Email           string             `json:"email" bson:"email"`
-	Password        string             `json:"password" bson:"password"`
-	BIO             string             `json:"bio" bson:"bio"`
-	ProfilePic      string             `json:"profilePic" bson:"profilepic"`
-	NativeLanguage  string             `json:"nativeLanguage" bson:"nativelanguage"`
-	LearningLanguage string            `json:"learningLanguage" bson:"learninglanguage"`
-	Location        string             `json:"location" bson:"location"`
-	IsOnboarded     bool               `json:"isOnboarded" bson:"isonboarded"`
-	Friends         []bson.ObjectID `json:"friends,omitempty" bson:"friends,omitempty"`
-}
-
-type UserCredentials struct {
-	ID              bson.ObjectID `bson:"_id,omitempty"`
-	Email           string             `bson:"email"`
-	Password        string             `bson:"password"`
-}
-
-type OnBoardingUser struct {
-	Fullname        string             `json:"fullName" bson:"fullname"`
-	BIO             string             `json:"bio" bson:"bio"`
-	NativeLanguage  string             `json:"nativeLanguage" bson:"nativelanguage"`
-	LearningLanguage string            `json:"learningLanguage" bson:"learninglanguage"`
-	Location        string             `json:"location" bson:"location"`
-	IsOnboarded     bool               `json:"isOnboarded" bson:"isonboarded"`
-}
-
 func NewUser(fullName string, email string, password string) *User {
 	//TODO: Making a random number for the photo
 	user := User{
@@ -191,4 +162,72 @@ func UpdateUserByID(id, fullname, bio, nativeLanguage, learningLanguage, locatio
 	}
 
 	return nil
+}
+
+func FindRecommendedUsers(id string) ([]User, error) {
+	collection := db.MongoClient.Database(db.DB).Collection("users")
+	ParseID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, fmt.Errorf("Invalid id: %w", err)
+	}
+
+	user, err := FindUserByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("No user Found: %w", err)
+	}
+
+  filters := []bson.M{
+		{"_id": bson.M{"$ne": ParseID}},
+		{"isonboarded": true},
+	}
+
+	if len(user.Friends) > 0 {
+		filters = append(filters, bson.M{
+			"_id": bson.M{"$nin": user.Friends},
+		})
+	}
+
+	filter := bson.M{"$and": filters}
+
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		return nil, fmt.Errorf("Error retriving documents: %w", err)
+	}
+
+	var result []User
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		return nil, fmt.Errorf("Error decoding documents: %w", err)
+	}
+
+	return result, nil
+}
+
+func GetFriends(id string) ([]User, error)  {
+	collection := db.MongoClient.Database(db.DB).Collection("users")
+	user, err := FindUserByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("No user Found: %w", err)
+	}
+
+	if len(user.Friends) == 0 {
+		return []User{}, nil
+	}
+
+	filter := bson.M{
+		"_id": bson.M{
+			"$in": user.Friends,
+		},
+	}
+
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to retrive friends: %w", err)
+	}
+
+	var friends []User
+	if err := cursor.All(context.TODO(), &friends); err != nil {
+		return nil, fmt.Errorf("Failed to decode friends: %w", err)
+	}
+
+	return friends, nil
 }
