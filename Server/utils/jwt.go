@@ -2,10 +2,13 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,6 +28,45 @@ func GenerateJWT(userID, secret string) (string, error)  {
 	})
 
 	return token.SignedString([]byte(secret))
+}
+
+func ParseToken(r *http.Request) (string, error)  {
+	errENV := godotenv.Load()
+	if errENV != nil {
+		log.Println("No .env file available")
+	}
+
+	cookie, err := r.Cookie("Blendz_Session")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			return "", fmt.Errorf("No cookie found: %w", err)
+		}
+		return "", fmt.Errorf("Error reading cookie: %w", err)
+	}
+
+	tokenStr := cookie.Value
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Invalid method")
+		}
+		return []byte(getEnv("JWT_SECRET", "other_key")), nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", fmt.Errorf("Invalid or expired token: %w", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("Invalid claims")
+	}
+
+	userID, ok := claims["userId"].(string)
+	if !ok {
+		return "", fmt.Errorf("userId missing")
+	}
+
+	return userID, nil
 }
 
 func SetCookie(token string) *http.Cookie {
@@ -65,4 +107,11 @@ func GetCokkie(r *http.Request) (*http.Cookie, error) {
 	}
 
 	return cookie, nil
+}
+
+func getEnv(key, fallback string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return fallback
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/Zheng5005/Blendz_v0/auth"
 	"github.com/Zheng5005/Blendz_v0/db"
+	"github.com/Zheng5005/Blendz_v0/middleware"
 	"github.com/Zheng5005/Blendz_v0/stream"
 	"github.com/joho/godotenv"
 )
@@ -37,6 +38,7 @@ func main()  {
 	mux.HandleFunc("POST /api/auth/signup", auth.Signup)
 	mux.HandleFunc("POST /api/auth/login", auth.Login)
 	mux.HandleFunc("POST /api/auth/logout", auth.Logout)
+	mux.HandleFunc("POST /api/auth/onboarding", middleware.ProtectRoute(auth.OnBoard))
 	// http.HandleFunc("GET /posts/{id}", handlePost2)
 
 	s, err := makeServer(mux)
@@ -61,9 +63,11 @@ func makeServer(mux *http.ServeMux) (s *http.Server, err error)  {
 		port = ":8081"
 	}
 
+	muxWithCors := middleware.CorsMiddleware(mux)
+
 	server := &http.Server{
 		Addr: port,
-		Handler: mux,
+		Handler: muxWithCors,
 	}
 
 	return server, nil

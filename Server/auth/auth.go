@@ -131,3 +131,40 @@ func Logout(w http.ResponseWriter, r *http.Request)  {
 	http.SetCookie(w, cookie)
 	w.Write([]byte("Logout"))
 }
+
+func OnBoard(w http.ResponseWriter, r *http.Request)  {
+	userId, err := utils.ParseToken(r)
+	if err != nil {
+		http.Error(w, "No cookie provied", http.StatusUnauthorized)
+		return
+	}
+
+	var input struct {
+		FullName                string             `json:"fullName"`
+		BIO                     string             `json:"bio"`
+		NativeLanguage          string             `json:"nativeLanguage"`
+		LearningLanguage        string             `json:"learningLanguage"`
+		Location                string             `json:"location"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid body", http.StatusBadRequest)
+		return
+	}
+
+	if input.FullName == "" || input.BIO == "" || input.NativeLanguage == "" || input.LearningLanguage == "" || input.Location == "" {
+		http.Error(w, "All fields are required", http.StatusBadRequest)
+		return
+	}
+
+	err = models.UpdateUserByID(userId, input.FullName, input.BIO, input.NativeLanguage, input.LearningLanguage, input.Location)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	//TODO: Update the user in getStream
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Success OnBoard"))
+}

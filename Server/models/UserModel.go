@@ -33,6 +33,15 @@ type UserCredentials struct {
 	Password        string             `bson:"password"`
 }
 
+type OnBoardingUser struct {
+	Fullname        string             `json:"fullName" bson:"fullname"`
+	BIO             string             `json:"bio" bson:"bio"`
+	NativeLanguage  string             `json:"nativeLanguage" bson:"nativelanguage"`
+	LearningLanguage string            `json:"learningLanguage" bson:"learninglanguage"`
+	Location        string             `json:"location" bson:"location"`
+	IsOnboarded     bool               `json:"isOnboarded" bson:"isonboarded"`
+}
+
 func NewUser(fullName string, email string, password string) *User {
 	user := User{
 		Fullname: fullName, 
@@ -127,4 +136,57 @@ func FindUser(email string) (UserCredentials, error) {
 	}
 
 	return result, nil
+}
+
+func FindUserByID(id string) (User, error)  {
+	collection := db.MongoClient.Database(db.DB).Collection("users")
+	ParseID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return User{}, fmt.Errorf("Invalid id: %w", err)
+	}
+
+	filter := bson.M{"_id": ParseID}
+
+	var result User
+	
+	err = collection.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+    if err == mongo.ErrNoDocuments {
+			return User{}, fmt.Errorf("No user was found: %w", err)
+		}
+		return User{}, fmt.Errorf("Error: %w", err)
+	}
+
+	return result, nil
+}
+
+func UpdateUserByID(id, fullname, bio, nativeLanguage, learningLanguage, location string) error  {
+	collection := db.MongoClient.Database(db.DB).Collection("users")
+	ParseID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("Invalid id: %w", err)
+	}
+
+	updatingUser := OnBoardingUser{
+		Fullname: fullname, 
+		BIO: bio, 
+		NativeLanguage: nativeLanguage, 
+		LearningLanguage: learningLanguage, 
+		Location: location, 
+		IsOnboarded: true,
+	}
+
+	update := bson.M{
+		"$set": updatingUser,
+	}
+
+	result, err := collection.UpdateByID(context.TODO(), ParseID, update)
+	if err != nil {
+		return fmt.Errorf("Error: %w", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("No user was found")
+	}
+
+	return nil
 }
