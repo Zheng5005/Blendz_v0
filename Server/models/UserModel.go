@@ -231,3 +231,33 @@ func GetFriends(id string) ([]User, error)  {
 
 	return friends, nil
 }
+
+func AreUsersFriends(senderID, recipientID string) (bool, error) {
+	collection := db.MongoClient.Database(db.DB).Collection("users")
+
+	// Parse both IDs
+	senderObjID, err := bson.ObjectIDFromHex(senderID)
+	if err != nil {
+		return false, fmt.Errorf("Invalid sender ID: %w", err)
+	}
+
+	recipientObjID, err := bson.ObjectIDFromHex(recipientID)
+	if err != nil {
+		return false, fmt.Errorf("Invalid recipient ID: %w", err)
+	}
+
+	// Query to check if sender is in recipient's friends
+	filter := bson.M{
+		"_id":     recipientObjID,
+		"friends": senderObjID,
+	}
+
+	// Try to find recipient with sender in friends list
+	count, err := collection.CountDocuments(context.TODO(), filter)
+	if err != nil {
+		return false, fmt.Errorf("Database error: %w", err)
+	}
+
+	return count > 0, nil
+}
+

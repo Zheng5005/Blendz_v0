@@ -46,3 +46,63 @@ func GetMyFriends(w http.ResponseWriter, r *http.Request)  {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(friends)
 }
+
+func SendFriendRequest(w http.ResponseWriter, r *http.Request)  {
+	userId, err := utils.ParseToken(r)
+	if err != nil {
+		http.Error(w, "No cookie provied", http.StatusUnauthorized)
+		return
+	}
+
+	recipientId := r.PathValue("id")
+	if recipientId == "" {
+		http.Error(w, "No recipientId provied", http.StatusBadRequest)
+		return
+	}
+
+	// Validatind if the user isn't sending a request to themself
+	if userId == recipientId {
+		http.Error(w, "You can't send friend request to yourself", http.StatusBadRequest)
+		return
+	}
+
+	// Validating if the user is already friends with the recipient
+	isFriend, err := models.AreUsersFriends(userId, recipientId)
+	if err != nil {
+		log.Println("Check error: ", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if isFriend {
+		http.Error(w, "You are already friends with this user", http.StatusBadRequest)
+		return
+	}
+
+	//Validating if there's a request pending
+	existingRequest, err := models.IsFriendRequestPending(userId, recipientId)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if existingRequest {
+		http.Error(w, "A friend request already exist between you and this user", http.StatusBadRequest)
+		return
+	}
+
+	newRequest, err := models.NewFriendRequest(userId, recipientId)
+	if err != nil {
+		log.Println("Check error: ", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+	_, err = models.InsertRequest(*newRequest)
+	if err != nil {
+		log.Println("Check error: ", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("Request Sent"))
+}

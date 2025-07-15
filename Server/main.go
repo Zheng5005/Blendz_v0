@@ -40,11 +40,11 @@ func main()  {
 	mux.HandleFunc("POST /api/auth/login", auth.Login)
 	mux.HandleFunc("POST /api/auth/logout", auth.Logout)
 	mux.HandleFunc("POST /api/auth/onboarding", middleware.ProtectRoute(auth.OnBoard))
-	// http.HandleFunc("GET /posts/{id}", handlePost2)
 
 	// Users routes
 	mux.HandleFunc("GET /api/users", middleware.ProtectRoute(user.GetRecommendedUsers))
 	mux.HandleFunc("GET /api/users/friends", middleware.ProtectRoute(user.GetMyFriends))
+	mux.HandleFunc("POST /api/users/friend-request/{id}", middleware.ProtectRoute(user.SendFriendRequest))
 
 	s, err := makeServer(mux)
 	if err != nil {
