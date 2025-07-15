@@ -96,7 +96,7 @@ func SendFriendRequest(w http.ResponseWriter, r *http.Request)  {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 
-	_, err = models.InsertRequest(*newRequest)
+	insertedRequest, err := models.InsertRequest(*newRequest)
 	if err != nil {
 		log.Println("Check error: ", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -104,5 +104,52 @@ func SendFriendRequest(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("Request Sent"))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(insertedRequest.Hex())
+}
+
+func AcceptFriendRequest(w http.ResponseWriter, r *http.Request)  {
+	// 6876c5c4e8eb55e209d13e6f
+	// 6876c19056a9518212f3a447
+	userId, err := utils.ParseToken(r)
+	if err != nil {
+		http.Error(w, "No cookie provied", http.StatusUnauthorized)
+		return
+	}
+
+	requestId := r.PathValue("id")
+	if requestId == "" {
+		http.Error(w, "No requestId provied", http.StatusBadRequest)
+		return
+	}
+
+	existingRequest, err := models.FindRequestByID(requestId)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "No friend request founded", http.StatusNotFound)
+		return
+	}
+
+	if existingRequest.Recipient.Hex() != userId {
+		http.Error(w, "You are not authorized to accept this request", http.StatusUnauthorized)
+		return
+	}
+
+	err = models.UpdateRequestByID(requestId, existingRequest)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Failed to update the request", http.StatusInternalServerError)
+		return
+	}
+
+	//Adding each user to friends list
+	err = models.AddMutualFriends(userId, existingRequest.Sender.Hex())
+	if err != nil {
+		log.Println("Error adding friend: ", err)
+		http.Error(w, "Could not add friend", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Friend request accepted"))
 }

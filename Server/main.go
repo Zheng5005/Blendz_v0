@@ -45,6 +45,7 @@ func main()  {
 	mux.HandleFunc("GET /api/users", middleware.ProtectRoute(user.GetRecommendedUsers))
 	mux.HandleFunc("GET /api/users/friends", middleware.ProtectRoute(user.GetMyFriends))
 	mux.HandleFunc("POST /api/users/friend-request/{id}", middleware.ProtectRoute(user.SendFriendRequest))
+	mux.HandleFunc("PUT /api/users/friend-request/{id}/accept", middleware.ProtectRoute(user.AcceptFriendRequest))
 
 	s, err := makeServer(mux)
 	if err != nil {

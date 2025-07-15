@@ -12,8 +12,8 @@ import (
 )
 
 var MongoClient *mongo.Client
-var DB = "blendz"
 var FriendRequests *mongo.Collection
+var Users *mongo.Collection
 
 func Init()  {
 	error := godotenv.Load()
@@ -40,5 +40,6 @@ func Init()  {
 	fmt.Println("Connected to MongoDB")
 
 	MongoClient = client
+	Users = MongoClient.Database("blendz").Collection("users")
 	FriendRequests = MongoClient.Database("blendz").Collection("friendRequests")
 }

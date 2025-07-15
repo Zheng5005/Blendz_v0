@@ -44,9 +44,7 @@ func ValidateUser(user User) error  {
 		return fmt.Errorf("Invalid email")
 	}
 
-	var collection = db.MongoClient.Database(db.DB).Collection("users")
-
-	count, err := collection.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: user.Email}})
+	count, err := db.Users.CountDocuments(context.TODO(), bson.D{{Key: "email", Value: user.Email}})
 
 	if err != nil {
 		return fmt.Errorf("Database error: %w", err)
@@ -78,9 +76,7 @@ func InsertUser(user User) (bson.ObjectID, error) {
 	}
 	user.ID = bson.NewObjectID()
 
-	var collection = db.MongoClient.Database(db.DB).Collection("users")
-
-	newUser, err := collection.InsertOne(context.TODO(), user)
+	newUser, err := db.Users.InsertOne(context.TODO(), user)
 	if err != nil {
 		return bson.NilObjectID, fmt.Errorf("Failed to insert user: %w", err)
 	}
@@ -89,7 +85,6 @@ func InsertUser(user User) (bson.ObjectID, error) {
 }
 
 func FindUser(email string) (UserCredentials, error) {
-	collection := db.MongoClient.Database(db.DB).Collection("users")
 	filter := bson.M{"email": email}
 
 	opts := options.FindOne().SetProjection(bson.D{
@@ -100,7 +95,7 @@ func FindUser(email string) (UserCredentials, error) {
 
 	var result UserCredentials
 
-	err := collection.FindOne(context.TODO(), filter, opts).Decode(&result)
+	err := db.Users.FindOne(context.TODO(), filter, opts).Decode(&result)
 	if err != nil {
     if err == mongo.ErrNoDocuments {
 			return UserCredentials{}, fmt.Errorf("No user was found: %w", err)
@@ -112,7 +107,6 @@ func FindUser(email string) (UserCredentials, error) {
 }
 
 func FindUserByID(id string) (User, error)  {
-	collection := db.MongoClient.Database(db.DB).Collection("users")
 	ParseID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return User{}, fmt.Errorf("Invalid id: %w", err)
@@ -122,7 +116,7 @@ func FindUserByID(id string) (User, error)  {
 
 	var result User
 	
-	err = collection.FindOne(context.TODO(), filter).Decode(&result)
+	err = db.Users.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
     if err == mongo.ErrNoDocuments {
 			return User{}, fmt.Errorf("No user was found: %w", err)
@@ -134,7 +128,6 @@ func FindUserByID(id string) (User, error)  {
 }
 
 func UpdateUserByID(id, fullname, bio, nativeLanguage, learningLanguage, location string) error  {
-	collection := db.MongoClient.Database(db.DB).Collection("users")
 	ParseID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return fmt.Errorf("Invalid id: %w", err)
@@ -153,7 +146,7 @@ func UpdateUserByID(id, fullname, bio, nativeLanguage, learningLanguage, locatio
 		"$set": updatingUser,
 	}
 
-	result, err := collection.UpdateByID(context.TODO(), ParseID, update)
+	result, err := db.Users.UpdateByID(context.TODO(), ParseID, update)
 	if err != nil {
 		return fmt.Errorf("Error: %w", err)
 	}
@@ -165,7 +158,6 @@ func UpdateUserByID(id, fullname, bio, nativeLanguage, learningLanguage, locatio
 }
 
 func FindRecommendedUsers(id string) ([]User, error) {
-	collection := db.MongoClient.Database(db.DB).Collection("users")
 	ParseID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid id: %w", err)
@@ -189,7 +181,7 @@ func FindRecommendedUsers(id string) ([]User, error) {
 
 	filter := bson.M{"$and": filters}
 
-	cursor, err := collection.Find(context.TODO(), filter)
+	cursor, err := db.Users.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, fmt.Errorf("Error retriving documents: %w", err)
 	}
@@ -203,7 +195,6 @@ func FindRecommendedUsers(id string) ([]User, error) {
 }
 
 func GetFriends(id string) ([]User, error)  {
-	collection := db.MongoClient.Database(db.DB).Collection("users")
 	user, err := FindUserByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("No user Found: %w", err)
@@ -219,7 +210,7 @@ func GetFriends(id string) ([]User, error)  {
 		},
 	}
 
-	cursor, err := collection.Find(context.TODO(), filter)
+	cursor, err := db.Users.Find(context.TODO(), filter)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to retrive friends: %w", err)
 	}
@@ -233,8 +224,6 @@ func GetFriends(id string) ([]User, error)  {
 }
 
 func AreUsersFriends(senderID, recipientID string) (bool, error) {
-	collection := db.MongoClient.Database(db.DB).Collection("users")
-
 	// Parse both IDs
 	senderObjID, err := bson.ObjectIDFromHex(senderID)
 	if err != nil {
@@ -253,7 +242,7 @@ func AreUsersFriends(senderID, recipientID string) (bool, error) {
 	}
 
 	// Try to find recipient with sender in friends list
-	count, err := collection.CountDocuments(context.TODO(), filter)
+	count, err := db.Users.CountDocuments(context.TODO(), filter)
 	if err != nil {
 		return false, fmt.Errorf("Database error: %w", err)
 	}
@@ -261,3 +250,41 @@ func AreUsersFriends(senderID, recipientID string) (bool, error) {
 	return count > 0, nil
 }
 
+func AddUserToFriendList(userId, newFriendId string) error {
+	ParseUserID, err := bson.ObjectIDFromHex(userId)
+	if err != nil {
+		return fmt.Errorf("Invalid id: %w", err)
+	}
+
+	ParseFriendID, err := bson.ObjectIDFromHex(newFriendId)
+	if err != nil {
+		return fmt.Errorf("Invalid id: %w", err)
+	}
+	
+	filter := bson.M{"_id": ParseUserID}
+	update := bson.M{
+		"$addToSet": bson.M{"friends": ParseFriendID},
+	}
+
+	result, err := db.Users.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return fmt.Errorf("Failed to add friend: %w", err)
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("User not found")
+	}
+
+	return nil
+}
+
+func AddMutualFriends(userId, friendId string) error  {
+	if err := AddUserToFriendList(userId, friendId); err != nil {
+		return err
+	}
+
+	if err := AddUserToFriendList(friendId, userId); err != nil {
+		return err
+	}
+
+	return nil
+}
