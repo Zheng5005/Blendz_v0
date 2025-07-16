@@ -288,3 +288,96 @@ func AddMutualFriends(userId, friendId string) error  {
 
 	return nil
 }
+
+func GetFriendRequests(userID string) (map[string][]bson.M, error) {
+	userObjID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// 🟡 1. Pending Requests (incoming) — you are the recipient
+	pendingPipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"recipient": userObjID,
+			"status":    "pending",
+		}}},
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "users",
+			"localField":   "sender",
+			"foreignField": "_id",
+			"as":           "user",
+		}}},
+		{{Key: "$unwind", Value: "$user"}},
+		{{Key: "$project", Value: bson.M{
+			"id":     "$_id",
+			"status": 1,
+			"user": bson.M{
+				"id":             "$user._id",
+				"fullName":       "$user.fullname",
+				"profilePic":     "$user.profilepic",
+				"nativeLanguage": "$user.nativelanguage",
+				"learningLanguage": "$user.learninglanguage",
+			},
+		}}},
+	}
+
+	// 🟢 2. Accepted Requests (you are sender or recipient)
+	acceptedPipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"status": "accepted",
+			"$or": []bson.M{
+				{"sender": userObjID},
+			},
+		}}},
+		{{Key: "$addFields", Value: bson.M{
+			"otherUserId": bson.M{
+				"$cond": []interface{}{
+					bson.M{"$eq": []interface{}{"$sender", userObjID}},
+					"$recipient",
+					"$sender",
+				},
+			},
+		}}},
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "users",
+			"localField":   "otherUserId",
+			"foreignField": "_id",
+			"as":           "user",
+		}}},
+		{{Key: "$unwind", Value: "$user"}},
+		{{Key: "$project", Value: bson.M{
+			"id":     "$_id",
+			"status": 1,
+			"user": bson.M{
+				"id":             "$user._id",
+				"fullName":       "$user.fullname",
+				"profilePic":     "$user.profilepic",
+			},
+		}}},
+	}
+
+	// Execute both
+	pendingCursor, err := db.FriendRequests.Aggregate(context.TODO(), pendingPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching pending: %w", err)
+	}
+	var pendingResults []bson.M
+	if err = pendingCursor.All(context.TODO(), &pendingResults); err != nil {
+		return nil, fmt.Errorf("error decoding pending: %w", err)
+	}
+
+	acceptedCursor, err := db.FriendRequests.Aggregate(context.TODO(), acceptedPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching accepted: %w", err)
+	}
+	var acceptedResults []bson.M
+	if err = acceptedCursor.All(context.TODO(), &acceptedResults); err != nil {
+		return nil, fmt.Errorf("error decoding accepted: %w", err)
+	}
+
+	return map[string][]bson.M{
+		"PendingRequest":  pendingResults,
+		"AcceptedRequest": acceptedResults,
+	}, nil
+}
+

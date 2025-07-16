@@ -109,8 +109,6 @@ func SendFriendRequest(w http.ResponseWriter, r *http.Request)  {
 }
 
 func AcceptFriendRequest(w http.ResponseWriter, r *http.Request)  {
-	// 6876c5c4e8eb55e209d13e6f
-	// 6876c19056a9518212f3a447
 	userId, err := utils.ParseToken(r)
 	if err != nil {
 		http.Error(w, "No cookie provied", http.StatusUnauthorized)
@@ -152,4 +150,22 @@ func AcceptFriendRequest(w http.ResponseWriter, r *http.Request)  {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Friend request accepted"))
+}
+
+func GetFriendRequests(w http.ResponseWriter, r *http.Request)  {
+	userId, err := utils.ParseToken(r)
+	if err != nil {
+		http.Error(w, "No cookie provied", http.StatusUnauthorized)
+		return
+	}
+
+  results, err := models.GetFriendRequests(userId)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Error", http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
 }
