@@ -187,3 +187,21 @@ func GetOutgoingFriendRequest(w http.ResponseWriter, r *http.Request)  {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
 }
+
+func GetMeAuth(w http.ResponseWriter, r *http.Request)  {
+	userId, err := utils.ParseToken(r)
+	if err != nil {
+		http.Error(w, "No cookie provied", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := models.FindUserByID(userId)
+	if err != nil {
+		http.Error(w, "No user found", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
