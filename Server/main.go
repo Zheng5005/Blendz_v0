@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/Zheng5005/Blendz_v0/auth"
+	"github.com/Zheng5005/Blendz_v0/chat"
 	"github.com/Zheng5005/Blendz_v0/db"
 	"github.com/Zheng5005/Blendz_v0/middleware"
 	"github.com/Zheng5005/Blendz_v0/stream"
@@ -47,6 +48,10 @@ func main()  {
 	mux.HandleFunc("POST /api/users/friend-request/{id}", middleware.ProtectRoute(user.SendFriendRequest))
 	mux.HandleFunc("PUT /api/users/friend-request/{id}/accept", middleware.ProtectRoute(user.AcceptFriendRequest))
 	mux.HandleFunc("GET /api/users/friend-requests", middleware.ProtectRoute(user.GetFriendRequests))
+	mux.HandleFunc("GET /api/users/outgoing-friend-requests", middleware.ProtectRoute(user.GetOutgoingFriendRequest))
+
+	//Chat routes
+	mux.HandleFunc("GET /api/chat/token", middleware.ProtectRoute(chat.GetStreamToken))
 
 	s, err := makeServer(mux)
 	if err != nil {

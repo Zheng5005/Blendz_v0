@@ -381,3 +381,48 @@ func GetFriendRequests(userID string) (map[string][]bson.M, error) {
 	}, nil
 }
 
+func GetOutgoingFriendRequest(userID string) (map[string][]bson.M, error) {
+	userObjID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// 🟡 1. Pending Requests (outgoing) — you are the sender
+	pendingPipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"sender": userObjID,
+			"status":    "pending",
+		}}},
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "users",
+			"localField":   "recipient",
+			"foreignField": "_id",
+			"as":           "user",
+		}}},
+		{{Key: "$unwind", Value: "$user"}},
+		{{Key: "$project", Value: bson.M{
+			"id":     "$_id",
+			"status": 1,
+			"user": bson.M{
+				"id":             "$user._id",
+				"fullName":       "$user.fullname",
+				"profilePic":     "$user.profilepic",
+				"nativeLanguage": "$user.nativelanguage",
+				"learningLanguage": "$user.learninglanguage",
+			},
+		}}},
+	}
+
+	pendingCursor, err := db.FriendRequests.Aggregate(context.TODO(), pendingPipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching pending: %w", err)
+	}
+	var pendingResults []bson.M
+	if err = pendingCursor.All(context.TODO(), &pendingResults); err != nil {
+		return nil, fmt.Errorf("error decoding pending: %w", err)
+	}
+
+	return map[string][]bson.M{
+		"PendingRequest":  pendingResults,
+	}, nil
+}

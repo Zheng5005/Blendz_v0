@@ -169,3 +169,21 @@ func GetFriendRequests(w http.ResponseWriter, r *http.Request)  {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(results)
 }
+
+func GetOutgoingFriendRequest(w http.ResponseWriter, r *http.Request)  {
+	userId, err := utils.ParseToken(r)
+	if err != nil {
+		http.Error(w, "No cookie provied", http.StatusUnauthorized)
+		return
+	}
+
+	results, err := models.GetOutgoingFriendRequest(userId)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Error", http.StatusInternalServerError)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
+}
