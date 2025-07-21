@@ -14,6 +14,8 @@ import (
 )
 
 func Signup(w http.ResponseWriter, r *http.Request)  {
+	//TODO: Check the token and the newID object, cause at the moment that cookie return an error.
+	// you have to use the login endpoint in order to get a valid cookie with a valid token
 	error := godotenv.Load()
 	if error != nil {
 		log.Println("No .env file founded")
@@ -137,6 +139,7 @@ func OnBoard(w http.ResponseWriter, r *http.Request)  {
 		http.Error(w, "No cookie provied", http.StatusUnauthorized)
 		return
 	}
+	//TODO: add the ProfilePic field to this handler
 
 	var input struct {
 		FullName                string             `json:"fullName"`

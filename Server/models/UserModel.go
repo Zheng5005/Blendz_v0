@@ -132,6 +132,7 @@ func UpdateUserByID(id, fullname, bio, nativeLanguage, learningLanguage, locatio
 	if err != nil {
 		return fmt.Errorf("Invalid id: %w", err)
 	}
+	//TODO: add ProfilePic field to this function
 
 	updatingUser := OnBoardingUser{
 		Fullname: fullname, 

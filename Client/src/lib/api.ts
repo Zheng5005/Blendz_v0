@@ -11,6 +11,15 @@ interface LoginData {
   password: string;
 }
 
+interface UserData {
+  fullName: string;
+  bio: string;
+  nativeLanguage: string;
+  learningLanguage: string;
+  location: string;
+  profilePic: string;
+}
+
 export const signup = async (signupData: SignUpData) => {
   try {
     const res = await axiosInstance.post("/auth/signup", signupData)
@@ -47,6 +56,16 @@ export const getAuthUser = async () => {
     return res.data;
   } catch (error) {
     console.log("Error in getAuthUser:", error);
+    return null;
+  }
+};
+
+export const completeOnboarding = async (userData: UserData) => {
+  try {
+    const response = await axiosInstance.post("/auth/onboarding", userData);
+    return response.data;   
+  } catch (error) {
+    console.log("Error in completeOnboarding api:", error);
     return null;
   }
 };

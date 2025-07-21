@@ -8,6 +8,7 @@ import ChatPage from "./pages/ChatPage"
 import OnboardingPage from "./pages/OnboardingPage"
 import { Toaster } from "react-hot-toast"
 import useAuthUser from "./hooks/useAuthUser"
+import PageLoader from "./components/PageLoader"
 
 function App() {
   const { isLoading, authUser } = useAuthUser();
@@ -15,7 +16,7 @@ function App() {
   const isAuthenticated = Boolean(authUser)
   const isOnboarded = authUser?.isOnboarded
 
-  if (isLoading) return <p>Loading...</p>
+  if (isLoading) return <PageLoader />
 
   return(
     <div className="h-screen" data-theme="synthwave">
