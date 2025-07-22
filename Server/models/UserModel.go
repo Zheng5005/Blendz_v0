@@ -196,6 +196,7 @@ func FindRecommendedUsers(id string) ([]User, error) {
 }
 
 func GetFriends(id string) ([]User, error)  {
+	//TODO: skip email, password, isonboarded, friends fields from the retrive users
 	user, err := FindUserByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("No user Found: %w", err)
