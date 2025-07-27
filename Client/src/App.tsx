@@ -13,6 +13,8 @@ import { useThemeStore } from "./store/useThemeStore"
 import Layout from "./components/Layout"
 
 function App() {
+  //TODO: Handle errors through toast
+  //TODO: Improve the UI of the whole app
   const { isLoading, authUser } = useAuthUser();
   const { theme } = useThemeStore();
 
@@ -53,7 +55,7 @@ function App() {
           )}
         />
         <Route 
-          path="/call" 
+          path="/call/:id" 
           element={isAuthenticated && isOnboarded ? (
             <CallPage />
           ) : (
@@ -61,7 +63,7 @@ function App() {
           )}
         />
         <Route 
-          path="/chat" 
+          path="/chat/:id" 
           element={isAuthenticated && isOnboarded ? (
             <Layout showSidebar={false}>
               <ChatPage />
