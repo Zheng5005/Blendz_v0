@@ -179,7 +179,7 @@ export const LANGUAGES = [
   "Dutch",
 ];
 
-export const LANGUAGE_TO_FLAG = {
+export const LANGUAGE_TO_FLAG: Record<string, string> = {
   english: "gb",
   spanish: "es",
   french: "fr",

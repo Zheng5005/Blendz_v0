@@ -13,7 +13,7 @@ import {
   Thread,
   Window,
 } from "stream-chat-react";
-import { StreamChat } from "stream-chat";
+import { StreamChat, Channel as StreamChannel } from "stream-chat";
 import toast from "react-hot-toast";
 
 import ChatLoader from "../components/ChatLoader";
@@ -24,8 +24,8 @@ const STREAM_API_KEY = import.meta.env.VITE_STREAM_API_KEY;
 const ChatPage = () => {
   const { id: targetUserId } = useParams();
 
-  const [chatClient, setChatClient] = useState(null);
-  const [channel, setChannel] = useState(null);
+  const [chatClient, setChatClient] = useState<StreamChat | null>(null);
+  const [channel, setChannel] = useState<StreamChannel | null>(null);
   const [loading, setLoading] = useState(true);
 
   const { authUser } = useAuthUser();
