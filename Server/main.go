@@ -73,7 +73,7 @@ func makeServer(mux *http.ServeMux) (s *http.Server, err error)  {
 	port := os.Getenv("PORT")
 
 	if port == "" {
-		port = ":8081"
+		port = ":8080"
 	}
 
 	muxWithCors := middleware.CorsMiddleware(mux)
