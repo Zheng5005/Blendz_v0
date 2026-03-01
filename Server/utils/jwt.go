@@ -77,7 +77,7 @@ func SetCookie(token string) *http.Cookie {
 		Path:    "/",                            // Valid for all paths
 		HttpOnly: true,                           // Not accessible via client-side scripts
 		Secure:  true,                           // Only sent over HTTPS
-		SameSite: http.SameSiteLaxMode,               // Controls cross-site requests
+		SameSite: http.SameSiteNoneMode,               // Controls cross-site requests
 	}
 
 	return cookie
@@ -91,7 +91,7 @@ func ClearCookie() *http.Cookie {
 		Path:    "/",                            // Valid for all paths
 		HttpOnly: true,                           // Not accessible via client-side scripts
 		Secure:  true,                           // Only sent over HTTPS
-		SameSite: http.SameSiteLaxMode,               // Controls cross-site requests
+		SameSite: http.SameSiteNoneMode,               // Controls cross-site requests
 	}
 
 	return cookie
