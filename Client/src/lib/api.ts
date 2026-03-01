@@ -73,20 +73,20 @@ export const completeOnboarding = async (userData: UserData) => {
 export async function getUserFriends() {
   try {
     const response = await axiosInstance.get("/users/friends");
-    return response.data;
+    return response.data ?? [];
   } catch (error) {
     console.log("Error in getUserFriends api:", error);
-    return null;
+    return [];
   }
 }
 
 export async function getRecommendedUsers() {
   try {
     const response = await axiosInstance.get("/users");
-    return response.data;
+    return response.data ?? [];
   } catch (error) {
     console.log("Error in getRecommendedUsers api:", error);
-    return null;
+    return [];
   }
 }
 
